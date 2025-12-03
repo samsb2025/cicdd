@@ -5,4 +5,3 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
 })
-axios.post("https://your-backend.up.railway.app/api/auth/login")
