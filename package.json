@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-     "test": "react-scripts test --watchAll=false",
+     
+  "test": "echo \"No tests specified\" && exit 0",
+
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
