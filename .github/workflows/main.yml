@@ -1,0 +1,76 @@
+name: React CI
+
+on:
+  push:
+    branches: [main]
+
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    env:
+      API_KEY: ${{ secrets.API_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build the project
+        run: npm run build
+
+      - name: Deploy to VPS via PM2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}      
+          key: ${{ secrets.KEY }}
+          port: 22
+          script: |
+            cd /ct-test
+            git pull origin main
+            npm install
+            npm run build
+  dast-scan:
+      needs: build-and-test
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+
+        - name: Use Node.js
+          uses: actions/setup-node@v4
+          with:
+            node-version: "20"
+            cache: npm
+
+        - name: Install dependencies
+          run: npm install
+
+        - name: Build the project
+          run: npm run build
+
+        - name: Start preview server
+          run: |
+            npm run preview -- --host 0.0.0.0 --port 4173 &
+            npx wait-on http://127.0.0.1:4173
+        - name: Run DAST Scan
+          run: docker run --network host -t owasp/zap2docker-stable -b zap-report.html -t http://localhost:4173
+
+        - name: Upload DAST Report
+          uses: actions/upload-artifact@v4
+          with:
+            name: zap-report
+            path: zap-report.html
